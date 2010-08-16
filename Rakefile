@@ -34,7 +34,7 @@ end
 
 ## if you're deploying with github, change the default deploy to deploy_github
 desc "default deploy task"
-task :deploy => [:deploy_rsync] do
+task :deploy => [:deploy_github] do
 end
 
 desc "Generate and deploy task"
