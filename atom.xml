@@ -3,12 +3,162 @@
   <title>My Octopress Blog</title>
   <link href="http://yoursite.com/atom.xml" rel="self" />
   <link href="http://yoursite.com" />
-  <updated>2010-08-15T20:51:47-07:00</updated>
+  <updated>2010-08-15T21:33:17-07:00</updated>
   <id>http://yoursite.com</id>
   <author>
     <name>Your Name</name>
     <email>author@domain.com</email>
   </author>
+  <entry>
+    <title>Aggregate statistics gem released!</title>
+    <link href="http://yoursite.com/blog/2009/09/13/aggregate-statistics-gem-released" />
+    <updated>2009-09-13T00:00:00-07:00</updated>
+    <id>http://yoursite.com/blog/2009/09/13/aggregate-statistics-gem-released</id>
+    <content type="html">
+      &lt;p&gt;Finally got around to putting together a decent README (and a few last bugfixes)
+      for my Aggregate statistics gem. With that out of the way, its ready for
+      public consumption. Aggregate is an easy-to-use ruby implementation of a
+      statistics aggregator that includes configurable histogram (binary or linear)
+      support. Stats are aggregated in a &lt;em&gt;streaming&lt;/em&gt; fashion that doesn&#8217;t record/store
+      any of the individual sample values, enabling statistics tracking across a
+      practically unlimited number of samples without any impact on your application&#8217;s
+      performance or memory footprint.&lt;/p&gt;
+      
+      &lt;p&gt;Perhaps more importantly than the basic aggregate statistics (e.g. mean,
+      standard deviation, max, min, etc) Aggregate also maintains a histogram of the
+      sample distribution. For anything other than normally distributed data averages
+      are insufficient at best and often downright misleading. 37Signals recently
+      posted a
+      &lt;a href=&quot;http://37signals.com/svn/posts/1836-the-problem-with-averages&quot;&gt;terse but effective explanation&lt;/a&gt;
+      on the importance of histograms. Here&#8217;s a second more
+      &lt;a href=&quot;http://www.zedshaw.com/essays/programmer_stats.html&quot;&gt;detailed posting&lt;/a&gt; by Zed
+      Shaw authored in his inimitable and entertaining style.&lt;/p&gt;
+      
+      &lt;p&gt;Full source code and a detailed README can be found on the
+      &lt;a href=&quot;http://github.com/josephruscio/aggregate&quot;&gt;project homepage&lt;/a&gt; and the gem is
+      available on &lt;a href=&quot;http://www.gemcutter.org/gems/aggregate&quot;&gt;gemcutter.org&lt;/a&gt;.
+      But just to whet your appetite, here&#8217;s a quick example:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;require 'rubygems'
+      require 'aggregate'
+      
+      # Create an Aggregate instance
+      binary_aggregate = Aggregate.new
+      linear_aggregate = Aggregate.new(0, 65536, 8192)
+      
+      65536.times do
+        x = rand(65536)
+        binary_aggregate &gt;&gt; x
+        linear_aggregate &gt;&gt; x
+      end
+      
+      puts &quot;\n** Binary Histogram **\n%s&quot; % [binary_aggregate.to_s]
+      puts &quot;\n** Linear Histogram **\n%s&quot; % [linear_aggregate.to_s]
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;And the resulting output:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;macbook:aggregate(master) jruscio$ ruby ./aggregate_example.rb 
+      
+      ** Binary Histogram **
+      value |------------------------------------------------------------------| count
+          1 |                                                                  |     1
+          2 |                                                                  |     1
+          4 |                                                                  |     2
+          8 |                                                                  |    10
+         16 |                                                                  |    24
+         32 |                                                                  |    33
+         64 |                                                                  |    71
+        128 |                                                                  |   121
+        256 |                                                                  |   258
+        512 |@                                                                 |   497
+       1024 |@@                                                                |  1061
+       2048 |@@@@                                                              |  2004
+       4096 |@@@@@@@@                                                          |  4186
+       8192 |@@@@@@@@@@@@@@@@                                                  |  8257
+      16384 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                                 | 16345
+      32768 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@| 32665
+        ~
+      Total |------------------------------------------------------------------| 65536
+      
+      ** Linear Histogram **
+      value |------------------------------------------------------------------| count
+          0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |  8269
+       8192 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |  8257
+      16384 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |  8302
+      24576 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   |  8043
+      32768 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ |  8273
+      40960 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   |  8052
+      49152 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|  8315
+      57344 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   |  8025
+      Total |------------------------------------------------------------------| 65536
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Feedback welcome and enjoy!&lt;/p&gt;
+    </content>
+  </entry>
+  <entry>
+    <title>Installing git on CentOS 5.2</title>
+    <link href="http://yoursite.com/blog/2009/07/29/installing-git-on-centos-5-2" />
+    <updated>2009-07-29T00:00:00-07:00</updated>
+    <id>http://yoursite.com/blog/2009/07/29/installing-git-on-centos-5-2</id>
+    <content type="html">
+      &lt;p&gt;&lt;a href=&quot;http://www.centos.org/&quot;&gt;CentOS&lt;/a&gt; for all intents and purposes is a community
+      supported clone of Red Hat Enterprise Linux (RHEL). If you want to run RHEL
+      without paying for support, CentOS is as good as it gets. One of the hallmarks
+      of Enterprise Linux distributions is their rock-steady stability i.e. they only
+      run really boring, old software. This risk-aversion has a downside in restricted
+      access to the latest and greatest packages and tools. Case in point, since Red
+      Hat released RHEL 5.0 in March 2007, Git has really matured from its origins as
+      a custom kernel development tool into a version control world-beater. Unfortunately
+      the base CentOS 5.2 repositories don&#8217;t appear to contain rpms for git. Or at
+      least the CentOS 5.2 AMI I&#8217;m using (ami-e300e68a) doesn&#8217;t:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;-bash-3.2# yum install git
+      Loading &quot;fastestmirror&quot; plugin
+      Loading mirror speeds from cached hostfile
+      ... [snip] ...
+      No package git available.
+      Nothing to do
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Not to fear, &lt;a href=&quot;https://rpmrepo.org/RPMforge&quot; title=&quot;&quot;&gt;RPMforge&lt;/a&gt; maintains an RPM
+      repository for CentOS full of goodies, including git (1.5.x as of this writing).
+      The CentOS Wiki provides
+      &lt;a href=&quot;http://wiki.centos.org/AdditionalResources/Repositories/RPMForge?action=show&amp;amp;redirect=Repositories%2FRPMForge#head-b06dd43af4eb366c28879a551701b1b5e4aefccd&quot; title=&quot;&quot;&gt;detailed instructions&lt;/a&gt; on configuring RPMforge access, but here&#8217;s the rapid-fire how-to.&lt;/p&gt;
+      
+      &lt;p&gt;Install &lt;em&gt;priorities&lt;/em&gt; to avoid conflicts between packages in RPMforge and the
+      Base CentOS repositories:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;-bash-3.2# yum install yum-priorities
+      ... [snip] ...
+      Installed: yum-priorities.noarch 0:1.1.16-13.el5.centos
+      Complete!
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;To configure priorities first edit &lt;em&gt;/etc/yum.repos.d/CentOS-Base.repo&lt;/em&gt; and add
+      a &lt;em&gt;priority=N&lt;/em&gt; line to each entry. For [base], [updates], [addons], and
+      [extras] set &lt;em&gt;N&lt;/em&gt; to 1. For [centosplus] set &lt;em&gt;N&lt;/em&gt; to 2. Also edit
+      &lt;em&gt;/etc/yum.repos.d/rpmforge.repo&lt;/em&gt; and for [rpmforge] set &lt;em&gt;N&lt;/em&gt; &gt; 2.
+      (I chose 4 because its the next power of 2, and that&#8217;s how I roll).&lt;/p&gt;
+      
+      &lt;p&gt;Verify our access to RPMforge with a check-update:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;-bash-3.2# yum check-update |grep forge
+      * rpmforge: ftp-stud.fht-esslingen.de
+      ... [snip] ...
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Finally install git:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;-bash-3.2# yum install git
+      ... [snip] ...
+      Complete!
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Enjoy the tasty DVCS goodness!&lt;/p&gt;
+    </content>
+  </entry>
   <entry>
     <title>KVM on Fedora 11 QuickStart Guide</title>
     <link href="http://yoursite.com/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide" />

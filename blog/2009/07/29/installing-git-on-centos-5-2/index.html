@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>My Octopress Blog :: Installing git on CentOS 5.2</title>
+    <link href='/stylesheets/screen.css' media='screen, projection' rel='stylesheet' type='text/css' />
+    <script src='http://ajax.googleapis.com/ajax/libs/mootools/1.2.4/mootools-yui-compressed.js' type='text/javascript'></script>
+    <script src='/javascripts/mootools-1.2.4.2-more.js' type='text/javascript'></script>
+    <script type='text/javascript'>
+      //<![CDATA[
+        var twitter_user = ""
+        var show_replies = false;
+        var tweet_count = 3;
+      //]]>
+    </script>
+    <script src='/javascripts/octopress.js' type='text/javascript'></script>
+    <script src='/javascripts/twitter.js' type='text/javascript'></script>
+    <link href='/atom.xml' rel='alternate' title='My Octopress Blog' type='application/atom+xml' />
+  </head>
+  <body id="">
+    <div id="header">
+      <div class='content'>
+        <h1>
+          <a class='title' href='/'>My Octopress Blog</a>
+        </h1>
+      </div>
+    </div>
+    <div id="nav">
+      <div class='content'>
+        <ul>
+          <li class='alpha'>
+            <a href='/'>Blog</a>
+          </li>
+          <li class='omega'>
+            <a href='/about.html'>About</a>
+          </li>
+          <li class='subscribe'>
+            <a href='/atom.xml'>Subscribe</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="page">
+      <div id="content">
+        <div id="main">
+          <div class="blog content">
+            <div class='article'>
+              <h2>Installing git on CentOS 5.2</h2>
+              <div class='meta'>
+                 posted: July 29th, 2009
+                
+              </div>
+              <p><a href="http://www.centos.org/">CentOS</a> for all intents and purposes is a community&#x000A;supported clone of Red Hat Enterprise Linux (RHEL). If you want to run RHEL&#x000A;without paying for support, CentOS is as good as it gets. One of the hallmarks&#x000A;of Enterprise Linux distributions is their rock-steady stability i.e. they only&#x000A;run really boring, old software. This risk-aversion has a downside in restricted&#x000A;access to the latest and greatest packages and tools. Case in point, since Red&#x000A;Hat released RHEL 5.0 in March 2007, Git has really matured from its origins as&#x000A;a custom kernel development tool into a version control world-beater. Unfortunately&#x000A;the base CentOS 5.2 repositories don&#8217;t appear to contain rpms for git. Or at&#x000A;least the CentOS 5.2 AMI I&#8217;m using (ami-e300e68a) doesn&#8217;t:</p>&#x000A;&#x000A;<pre><code>-bash-3.2# yum install git&#x000A;Loading "fastestmirror" plugin&#x000A;Loading mirror speeds from cached hostfile&#x000A;... [snip] ...&#x000A;No package git available.&#x000A;Nothing to do&#x000A;</code></pre>&#x000A;&#x000A;<p>Not to fear, <a href="https://rpmrepo.org/RPMforge" title="">RPMforge</a> maintains an RPM&#x000A;repository for CentOS full of goodies, including git (1.5.x as of this writing).&#x000A;The CentOS Wiki provides&#x000A;<a href="http://wiki.centos.org/AdditionalResources/Repositories/RPMForge?action=show&amp;amp;redirect=Repositories%2FRPMForge#head-b06dd43af4eb366c28879a551701b1b5e4aefccd" title="">detailed instructions</a> on configuring RPMforge access, but here&#8217;s the rapid-fire how-to.</p>&#x000A;&#x000A;<p>Install <em>priorities</em> to avoid conflicts between packages in RPMforge and the&#x000A;Base CentOS repositories:</p>&#x000A;&#x000A;<pre><code>-bash-3.2# yum install yum-priorities&#x000A;... [snip] ...&#x000A;Installed: yum-priorities.noarch 0:1.1.16-13.el5.centos&#x000A;Complete!&#x000A;</code></pre>&#x000A;&#x000A;<p>To configure priorities first edit <em>/etc/yum.repos.d/CentOS-Base.repo</em> and add&#x000A;a <em>priority=N</em> line to each entry. For [base], [updates], [addons], and&#x000A;[extras] set <em>N</em> to 1. For [centosplus] set <em>N</em> to 2. Also edit&#x000A;<em>/etc/yum.repos.d/rpmforge.repo</em> and for [rpmforge] set <em>N</em> > 2.&#x000A;(I chose 4 because its the next power of 2, and that&#8217;s how I roll).</p>&#x000A;&#x000A;<p>Verify our access to RPMforge with a check-update:</p>&#x000A;&#x000A;<pre><code>-bash-3.2# yum check-update |grep forge&#x000A;* rpmforge: ftp-stud.fht-esslingen.de&#x000A;... [snip] ...&#x000A;</code></pre>&#x000A;&#x000A;<p>Finally install git:</p>&#x000A;&#x000A;<pre><code>-bash-3.2# yum install git&#x000A;... [snip] ...&#x000A;Complete!&#x000A;</code></pre>&#x000A;&#x000A;<p>Enjoy the tasty DVCS goodness!</p>
+              <div id='disqus_thread'></div>
+            </div>
+          </div>
+        </div>
+        <div id="sidebar"></div>
+      </div>
+    </div>
+    <div id='footer'>
+      <div class='content'>
+        Copyright &copy; 2010 - My Octopress Blog -
+        <span class='credit'>Powered by <a href="http://octopress.org">Octopress</a></span>
+      </div>
+    </div>
+  </body>
+</html>
