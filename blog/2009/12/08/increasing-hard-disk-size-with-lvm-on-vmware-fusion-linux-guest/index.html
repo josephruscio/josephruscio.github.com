@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Joseph Ruscio :: Increasing hard disk size with LVM on VMWare Fusion Linux guest</title>
+    <link href='/stylesheets/screen.css' media='screen, projection' rel='stylesheet' type='text/css' />
+    <script src='http://ajax.googleapis.com/ajax/libs/mootools/1.2.4/mootools-yui-compressed.js' type='text/javascript'></script>
+    <script src='/javascripts/mootools-1.2.4.2-more.js' type='text/javascript'></script>
+    <script type='text/javascript'>
+      //<![CDATA[
+        var twitter_user = "josephruscio"
+        var show_replies = false;
+        var tweet_count = 3;
+      //]]>
+    </script>
+    <script src='/javascripts/octopress.js' type='text/javascript'></script>
+    <script src='/javascripts/twitter.js' type='text/javascript'></script>
+    <link href='/atom.xml' rel='alternate' title='Joseph Ruscio' type='application/atom+xml' />
+  </head>
+  <body id="">
+    <div id="header">
+      <div class='content'>
+        <h1>
+          <a class='title' href='/'>Joseph Ruscio</a>
+        </h1>
+      </div>
+    </div>
+    <div id="nav">
+      <div class='content'>
+        <ul>
+          <li class='alpha'>
+            <a href='/'>Blog</a>
+          </li>
+          <li class='omega'>
+            <a href='/about.html'>About</a>
+          </li>
+          <li class='subscribe'>
+            <a href='/atom.xml'>Subscribe</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="page">
+      <div id="content">
+        <div id="main">
+          <div class="blog content">
+            <div class='article'>
+              <h2>Increasing hard disk size with LVM on VMWare Fusion Linux guest</h2>
+              <div class='meta'>
+                by: Joseph Ruscio | posted: December 8th, 2009
+                
+              </div>
+              <p>I currently use VMware Fusion to maintain and run a Linux guest on my Macbook.&#x000A;When I originally installed the guest, I assumed that a 20 GB virtual disk&#x000A;would be more than enough space for my Linux hacking.</p>&#x000A;&#x000A;<p>As you can probably infer from the title of this post, some recent developments&#x000A;invalidated that assumption and necessitated more disk space. What follows is a&#x000A;procedure I cobbled together from a bunch of disparate sources that works for my&#x000A;particular setup (VMware Fusion 2.0.4, Fedora 10 guest w/LVM and an ext3&#x000A;filesystem). These instructions involve modifying physical partitions, logical&#x000A;volumes, and your filesystem so I advise you to read through them to the end&#x000A;before getting started.</p>&#x000A;&#x000A;<p>The very first step is to use Fusion to increase the &#8220;physical size&#8221; of the&#x000A;virtual disk. This functionality is accessible through the <em>Virtual Machine&#x000A;-> Hard Disk -> Hard Disk Settings</em> menu item. The resulting dialog contains a&#x000A;<em>Disk size</em> slider. Note that this slider is not accessible unless the VM in&#x000A;question is shut down and (more annoyingly) all pre-existing snapshots are deleted.&#x000A;I just had one snapshot to delete, but it took a while, so be patient. After&#x000A;you&#8217;ve increased the disk size, probably wouldn&#8217;t hurt to take a new snapshot,&#x000A;just in case something goes wrong with the procedure below.</p>&#x000A;&#x000A;<p>Now that we&#8217;ve increased the disk size (I increased mine from 20GB -> 50GB), let&#8217;s&#x000A;boot the VM and log into our guest. We&#8217;ll use the <em>df</em> command to examine our&#x000A;mounted file filesystems:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# df -h&#x000A;Filesystem            Size  Used Avail Use% Mounted on&#x000A;/dev/mapper/VolGroup00-LogVol00&#x000A;           18G   15G  1.9G  89% /&#x000A;/dev/sda1             190M  163M   18M  91% /boot&#x000A;tmpfs                 502M   80K  502M   1% /dev/shm&#x000A;</code></pre>&#x000A;&#x000A;<p>Still shows 20 GB of total space and a filesystem device <em>/dev/mapper/VolGroup00-LogVol00</em>&#x000A;that&#8217;s indicative of LVM, the default for Fedora. Use the venerable <em>fdisk</em> to examine&#x000A;the &#8220;physical&#8221; disk:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# fdisk -l&#x000A;Disk /dev/sda: 52.6 GB, 52613349376 bytes&#x000A;255 heads, 63 sectors/track, 6396 cylinders&#x000A;Units = cylinders of 16065 * 512 = 8225280 bytes&#x000A;Disk identifier: 0x000f2b12&#x000A;Device    Boot      Start         End      Blocks   Id  System&#x000A;/dev/sda1   *           1          25      200781   83  Linux&#x000A;/dev/sda2              26        2610    20764012+  8e  Linux LVM&#x000A;</code></pre>&#x000A;&#x000A;<p>The physical disk has the capacity, but its in the form of unpartitioned/unformatted space.&#x000A;Before we can do anything, We need to create a new partition containing this space.&#x000A;First we&#8217;ll drop into <em>parted</em> and examine the existing partition table:</p>&#x000A;&#x000A;<pre><code>(parted) print&#x000A;Model: VMware, VMware Virtual S (scsi)&#x000A;Disk /dev/sda: 52.6GB&#x000A;Sector size (logical/physical): 512B/512B&#x000A;Partition Table: msdos&#x000A;Number  Start   End     Size    Type     File system  Flags&#x000A; 1      32.3kB  206MB   206MB   primary  ext3         boot &#x000A; 2      206MB   21.5GB  21.3GB  primary               lvm  &#x000A;</code></pre>&#x000A;&#x000A;<p>Create a new partition that uses up all of the new space on the physical device:</p>&#x000A;&#x000A;<pre><code>(parted) mkpart primary 21.4GB -1s &#x000A;(parted) print&#x000A;Model: VMware, VMware Virtual S (scsi)&#x000A;Disk /dev/sda: 52.6GB&#x000A;Sector size (logical/physical): 512B/512B&#x000A;Partition Table: msdos&#x000A;Number  Start   End     Size    Type     File system  Flags&#x000A; 1      32.3kB  206MB   206MB   primary  ext3         boot &#x000A; 2      206MB   21.5GB  21.3GB  primary               lvm  &#x000A; 3      21.5GB  52.6GB  31.1GB  primary                    &#x000A;</code></pre>&#x000A;&#x000A;<p>Use <em>partprobe</em> to load the table:</p>&#x000A;&#x000A;<pre><code>(parted) quit&#x000A;[root@fedora ~]# partprobe&#x000A;</code></pre>&#x000A;&#x000A;<p>At this point we&#8217;ve got a new partition, <em>/dev/sda3</em>, that you could simply&#x000A;format with <em>mke2fs</em> and mount as its own filesystem e.g. <em>/mnt/data</em>. I&#x000A;personally chose to leverage LVM&#8217;s capabilities and incorporate the new&#x000A;partition into the existing logical volume mounted as /. Start by examining&#x000A;the set of existing physical volumes:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# lvm pvs&#x000A;  PV         VG         Fmt  Attr PSize  PFree &#x000A;  /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M&#x000A;</code></pre>&#x000A;&#x000A;<p>Create a new physical volume with the new partition:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# lvm pvcreate /dev/sda3&#x000A;  Physical volume "/dev/sda3" successfully created&#x000A;[root@fedora ~]# lvm pvs&#x000A;  PV         VG         Fmt  Attr PSize  PFree &#x000A;  /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M&#x000A;  /dev/sda3             lvm2 --   29.01G 29.01G&#x000A;</code></pre>&#x000A;&#x000A;<p>Add new physical volume to the volume group. If you recall from the initial&#x000A;<em>df</em> output above, the volume group in question is VolGroup0:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# lvm vgextend VolGroup00 /dev/sda3&#x000A;  Volume group "VolGroup00" successfully extended&#x000A;[root@fedora ~]# lvm pvs&#x000A;  PV         VG         Fmt  Attr PSize  PFree &#x000A;  /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M&#x000A;  /dev/sda3  VolGroup00 lvm2 a-   29.00G 29.00G&#x000A;</code></pre>&#x000A;&#x000A;<p>Now extend the logical volume to include the physical volume we just added to&#x000A;the group. Use <em>lvm vgdisplay</em> to examine the group:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# lvm vgdisplay VolGroup00&#x000A;  --- Volume group ---&#x000A;  VG Name               VolGroup00&#x000A;  System ID&#x000A;  Format                lvm2&#x000A;  Metadata Areas        2&#x000A;  Metadata Sequence No  4&#x000A;  VG Access             read/write&#x000A;  VG Status             resizable&#x000A;  MAX LV                0&#x000A;  Cur LV                2&#x000A;  Open LV               2&#x000A;  Max PV                0&#x000A;  Cur PV                2&#x000A;  Act PV                2&#x000A;  VG Size               48.78 GB&#x000A;  PE Size               32.00 MB&#x000A;  Total PE              1561&#x000A;  Alloc PE / Size       632 / 19.75 GB&#x000A;  Free  PE / Size       929 / 29.03 GB&#x000A;  VG UUID               8w2Wi9-T2lV-IKCV-fLRP-yTJl-teJM-LuGoNb&#x000A;</code></pre>&#x000A;&#x000A;<p>The <em>Free PE/Size</em> field shows the new physical volume as 929 free extents.&#x000A;Extend the logical volume to include all free extents:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# lvm lvextend -l+929 /dev/VolGroup00/LogVol00&#x000A;  Extending logical volume LogVol00 to 46.81 GB&#x000A;  Logical volume LogVol00 successfully resized&#x000A;</code></pre>&#x000A;&#x000A;<p>Use <em>resize2fs</em> to extend our ext3 filesystem online. Note that many LVM&#x000A;tutorials online refer to the now deprecated <em>ext2online</em> command for this&#x000A;step, <em>resize2fs</em> now provides this functionality:</p>&#x000A;&#x000A;<pre><code>root@fedora ~]# resize2fs /dev/VolGroup00/LogVol00 &#x000A;resize2fs 1.41.4 (27-Jan-2009)&#x000A;Filesystem at /dev/VolGroup00/LogVol00 is mounted on /; on-line resizing required&#x000A;old desc_blocks = 2, new_desc_blocks = 3&#x000A;Performing an on-line resize of /dev/VolGroup00/LogVol00 to 12271616 (4k) blocks.&#x000A;The filesystem on /dev/VolGroup00/LogVol00 is now 12271616 blocks long.&#x000A;</code></pre>&#x000A;&#x000A;<p>Finally, use <em>df</em> again to verify that we have lots of free space:</p>&#x000A;&#x000A;<pre><code>[root@fedora ~]# df -h&#x000A;Filesystem            Size  Used Avail Use% Mounted on&#x000A;/dev/mapper/VolGroup00-LogVol00&#x000A;           47G   15G   29G  34% /&#x000A;/dev/sda1             190M  163M   18M  91% /boot&#x000A;tmpfs                 502M   80K  502M   1% /dev/shm&#x000A;</code></pre>
+              <div id='disqus_thread'></div>
+            </div>
+          </div>
+        </div>
+        <div id="sidebar">
+          <h4>Twitter <a class="small" href="http://twitter.com/josephruscio">@josephruscio</a></h4>
+          <div id='twitter'>
+            <ul id='twitter_status'>
+              Status updating...
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id='footer'>
+      <div class='content'>
+        Copyright &copy; 2010 - Joseph Ruscio -
+        <span class='credit'>Powered by <a href="http://octopress.org">Octopress</a></span>
+      </div>
+    </div>
+    
+    <script type='text/javascript'>
+      //<![CDATA[
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-18008905-1']);
+        _gaq.push(['_trackPageview']);
+        
+        (function() {
+          var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+          ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+          (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+        })();
+      //]]>
+    </script>
+  </body>
+</html>

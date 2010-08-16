@@ -1,26 +1,26 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>My Octopress Blog :: Securing your online identity</title>
+    <title>Joseph Ruscio :: Securing your online identity</title>
     <link href='/stylesheets/screen.css' media='screen, projection' rel='stylesheet' type='text/css' />
     <script src='http://ajax.googleapis.com/ajax/libs/mootools/1.2.4/mootools-yui-compressed.js' type='text/javascript'></script>
     <script src='/javascripts/mootools-1.2.4.2-more.js' type='text/javascript'></script>
     <script type='text/javascript'>
       //<![CDATA[
-        var twitter_user = ""
+        var twitter_user = "josephruscio"
         var show_replies = false;
         var tweet_count = 3;
       //]]>
     </script>
     <script src='/javascripts/octopress.js' type='text/javascript'></script>
     <script src='/javascripts/twitter.js' type='text/javascript'></script>
-    <link href='/atom.xml' rel='alternate' title='My Octopress Blog' type='application/atom+xml' />
+    <link href='/atom.xml' rel='alternate' title='Joseph Ruscio' type='application/atom+xml' />
   </head>
   <body id="">
     <div id="header">
       <div class='content'>
         <h1>
-          <a class='title' href='/'>My Octopress Blog</a>
+          <a class='title' href='/'>Joseph Ruscio</a>
         </h1>
       </div>
     </div>
@@ -46,7 +46,7 @@
             <div class='article'>
               <h2>Securing your online identity</h2>
               <div class='meta'>
-                 posted: July 16th, 2009
+                by: Joseph Ruscio | posted: July 16th, 2009
                 
               </div>
               <p>This week a&#x000A;<a href="http://www.mercurynews.com/topstories/ci_12844562">widely publicized security breach</a>&#x000A;occurred at media darling Twitter. The cracker made off with a slew of internal&#x000A;company documents, most of which are now easily located at your technology news&#x000A;site of choice. It&#8217;s somewhat of a tempest in a teapot, given that most of the&#x000A;secret documents reveal such salacious details such as Twitter&#8217;s desire to make&#x000A;money and grow. Shocking, I know.</p>&#x000A;&#x000A;<p>What should should concern the average net denizen (you, me, etc), is the&#x000A;attack vector used to compromise Twitter. In a similar fashion to what&#x000A;<a href="http://www.wired.com/threatlevel/2008/09/palin-e-mail-ha/">befell Sarah Palin</a>&#x000A;during the last election, the cracker managed to compromise a personal&#x000A;web-based email account of a handful of Twitter employees or their family (Gmail&#x000A;in this case, Yahoo for Sarah Palin). After gaining access to Gmail accounts,&#x000A;the cracker was able to both access other online accounts, any attached documents,&#x000A;or Google Docs repositories.</p>&#x000A;&#x000A;<p>You see, almost any website you log into will gladly email you everything you&#x000A;need to access your account through a simple click of the &#8220;Forgot my password&#8221;&#x000A;button. So even assuming you have a unique, strong password set on every account&#x000A;(and lets be honest, you don&#8217;t), once a cracker gains access to your favorite&#x000A;email account, its game over.</p>&#x000A;&#x000A;<p>And what industrial strength security mechanism do email providers use to&#x000A;protect your online achilles heel? Some simple question that&#8217;s ridiculously&#x000A;susceptible to attacks. (What&#8217;s your mother&#8217;s maiden name? What town did you go&#x000A;to high school in? What kind of car do you drive?) So while IANASE (I Am Not A&#x000A;Security Expert), and you need to take responsibility for securing your&#x000A;identity online, there are a few simple things you can do to drastically&#x000A;increase your safety.</p>&#x000A;&#x000A;<p>Even if you&#8217;re not going to use a unique, random password for each account&#x000A;(and you should), at least secure your online email accounts or any Single&#x000A;Sign-on (e.g. OpenID) with a unique, random password. Furthermore, if you have&#x000A;the opportunity to select your own security question (Gmail at least permits&#x000A;this), you should use a question along the lines of &#8220;What is the answer to my&#x000A;security question?&#8221; and supply as that answer a highly-randomized, secure&#x000A;password that you record and store somewhere safe. FYI, a post-it note affixed&#x000A;to your monitor is not such a safe location. Alternatively you could just&#x000A;answer one of the silly questions with your random password.</p>&#x000A;&#x000A;<p>(For those looking for more ubiquitous protection,&#x000A;<a href="http://agilewebsolutions.com/products/a/1Password">1Password</a> is a highly-touted,&#x000A;secure password manager that seamlessly integrates with your web-browser to&#x000A;maintain a full set of unique, bulletproof passwords.)</p>
@@ -54,14 +54,35 @@
             </div>
           </div>
         </div>
-        <div id="sidebar"></div>
+        <div id="sidebar">
+          <h4>Twitter <a class="small" href="http://twitter.com/josephruscio">@josephruscio</a></h4>
+          <div id='twitter'>
+            <ul id='twitter_status'>
+              Status updating...
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
     <div id='footer'>
       <div class='content'>
-        Copyright &copy; 2010 - My Octopress Blog -
+        Copyright &copy; 2010 - Joseph Ruscio -
         <span class='credit'>Powered by <a href="http://octopress.org">Octopress</a></span>
       </div>
     </div>
+    
+    <script type='text/javascript'>
+      //<![CDATA[
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-18008905-1']);
+        _gaq.push(['_trackPageview']);
+        
+        (function() {
+          var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+          ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+          (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+        })();
+      //]]>
+    </script>
   </body>
 </html>

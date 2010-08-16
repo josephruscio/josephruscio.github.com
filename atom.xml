@@ -1,19 +1,195 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>My Octopress Blog</title>
-  <link href="http://yoursite.com/atom.xml" rel="self" />
-  <link href="http://yoursite.com" />
-  <updated>2010-08-15T21:42:42-07:00</updated>
-  <id>http://yoursite.com</id>
+  <title>Joseph Ruscio</title>
+  <link href="http://joseph.ruscio.org/atom.xml" rel="self" />
+  <link href="http://joseph.ruscio.org" />
+  <updated>2010-08-15T22:41:45-07:00</updated>
+  <id>http://joseph.ruscio.org</id>
   <author>
-    <name>Your Name</name>
-    <email>author@domain.com</email>
+    <name>Joseph Ruscio</name>
+    <email>joe@ruscio.org</email>
   </author>
   <entry>
+    <title>Increasing hard disk size with LVM on VMWare Fusion Linux guest</title>
+    <link href="http://joseph.ruscio.org/blog/2009/12/08/increasing-hard-disk-size-with-lvm-on-vmware-fusion-linux-guest" />
+    <updated>2009-12-08T00:00:00-08:00</updated>
+    <id>http://joseph.ruscio.org/blog/2009/12/08/increasing-hard-disk-size-with-lvm-on-vmware-fusion-linux-guest</id>
+    <content type="html">
+      &lt;p&gt;I currently use VMware Fusion to maintain and run a Linux guest on my Macbook.
+      When I originally installed the guest, I assumed that a 20 GB virtual disk
+      would be more than enough space for my Linux hacking.&lt;/p&gt;
+      
+      &lt;p&gt;As you can probably infer from the title of this post, some recent developments
+      invalidated that assumption and necessitated more disk space. What follows is a
+      procedure I cobbled together from a bunch of disparate sources that works for my
+      particular setup (VMware Fusion 2.0.4, Fedora 10 guest w/LVM and an ext3
+      filesystem). These instructions involve modifying physical partitions, logical
+      volumes, and your filesystem so I advise you to read through them to the end
+      before getting started.&lt;/p&gt;
+      
+      &lt;p&gt;The very first step is to use Fusion to increase the &#8220;physical size&#8221; of the
+      virtual disk. This functionality is accessible through the &lt;em&gt;Virtual Machine
+      -&gt; Hard Disk -&gt; Hard Disk Settings&lt;/em&gt; menu item. The resulting dialog contains a
+      &lt;em&gt;Disk size&lt;/em&gt; slider. Note that this slider is not accessible unless the VM in
+      question is shut down and (more annoyingly) all pre-existing snapshots are deleted.
+      I just had one snapshot to delete, but it took a while, so be patient. After
+      you&#8217;ve increased the disk size, probably wouldn&#8217;t hurt to take a new snapshot,
+      just in case something goes wrong with the procedure below.&lt;/p&gt;
+      
+      &lt;p&gt;Now that we&#8217;ve increased the disk size (I increased mine from 20GB -&gt; 50GB), let&#8217;s
+      boot the VM and log into our guest. We&#8217;ll use the &lt;em&gt;df&lt;/em&gt; command to examine our
+      mounted file filesystems:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# df -h
+      Filesystem            Size  Used Avail Use% Mounted on
+      /dev/mapper/VolGroup00-LogVol00
+                 18G   15G  1.9G  89% /
+      /dev/sda1             190M  163M   18M  91% /boot
+      tmpfs                 502M   80K  502M   1% /dev/shm
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Still shows 20 GB of total space and a filesystem device &lt;em&gt;/dev/mapper/VolGroup00-LogVol00&lt;/em&gt;
+      that&#8217;s indicative of LVM, the default for Fedora. Use the venerable &lt;em&gt;fdisk&lt;/em&gt; to examine
+      the &#8220;physical&#8221; disk:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# fdisk -l
+      Disk /dev/sda: 52.6 GB, 52613349376 bytes
+      255 heads, 63 sectors/track, 6396 cylinders
+      Units = cylinders of 16065 * 512 = 8225280 bytes
+      Disk identifier: 0x000f2b12
+      Device    Boot      Start         End      Blocks   Id  System
+      /dev/sda1   *           1          25      200781   83  Linux
+      /dev/sda2              26        2610    20764012+  8e  Linux LVM
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;The physical disk has the capacity, but its in the form of unpartitioned/unformatted space.
+      Before we can do anything, We need to create a new partition containing this space.
+      First we&#8217;ll drop into &lt;em&gt;parted&lt;/em&gt; and examine the existing partition table:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;(parted) print
+      Model: VMware, VMware Virtual S (scsi)
+      Disk /dev/sda: 52.6GB
+      Sector size (logical/physical): 512B/512B
+      Partition Table: msdos
+      Number  Start   End     Size    Type     File system  Flags
+       1      32.3kB  206MB   206MB   primary  ext3         boot 
+       2      206MB   21.5GB  21.3GB  primary               lvm  
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a new partition that uses up all of the new space on the physical device:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;(parted) mkpart primary 21.4GB -1s 
+      (parted) print
+      Model: VMware, VMware Virtual S (scsi)
+      Disk /dev/sda: 52.6GB
+      Sector size (logical/physical): 512B/512B
+      Partition Table: msdos
+      Number  Start   End     Size    Type     File system  Flags
+       1      32.3kB  206MB   206MB   primary  ext3         boot 
+       2      206MB   21.5GB  21.3GB  primary               lvm  
+       3      21.5GB  52.6GB  31.1GB  primary                    
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Use &lt;em&gt;partprobe&lt;/em&gt; to load the table:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;(parted) quit
+      [root@fedora ~]# partprobe
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;At this point we&#8217;ve got a new partition, &lt;em&gt;/dev/sda3&lt;/em&gt;, that you could simply
+      format with &lt;em&gt;mke2fs&lt;/em&gt; and mount as its own filesystem e.g. &lt;em&gt;/mnt/data&lt;/em&gt;. I
+      personally chose to leverage LVM&#8217;s capabilities and incorporate the new
+      partition into the existing logical volume mounted as /. Start by examining
+      the set of existing physical volumes:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# lvm pvs
+        PV         VG         Fmt  Attr PSize  PFree 
+        /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a new physical volume with the new partition:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# lvm pvcreate /dev/sda3
+        Physical volume &quot;/dev/sda3&quot; successfully created
+      [root@fedora ~]# lvm pvs
+        PV         VG         Fmt  Attr PSize  PFree 
+        /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M
+        /dev/sda3             lvm2 --   29.01G 29.01G
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Add new physical volume to the volume group. If you recall from the initial
+      &lt;em&gt;df&lt;/em&gt; output above, the volume group in question is VolGroup0:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# lvm vgextend VolGroup00 /dev/sda3
+        Volume group &quot;VolGroup00&quot; successfully extended
+      [root@fedora ~]# lvm pvs
+        PV         VG         Fmt  Attr PSize  PFree 
+        /dev/sda2  VolGroup00 lvm2 a-   19.78G 32.00M
+        /dev/sda3  VolGroup00 lvm2 a-   29.00G 29.00G
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Now extend the logical volume to include the physical volume we just added to
+      the group. Use &lt;em&gt;lvm vgdisplay&lt;/em&gt; to examine the group:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# lvm vgdisplay VolGroup00
+        --- Volume group ---
+        VG Name               VolGroup00
+        System ID
+        Format                lvm2
+        Metadata Areas        2
+        Metadata Sequence No  4
+        VG Access             read/write
+        VG Status             resizable
+        MAX LV                0
+        Cur LV                2
+        Open LV               2
+        Max PV                0
+        Cur PV                2
+        Act PV                2
+        VG Size               48.78 GB
+        PE Size               32.00 MB
+        Total PE              1561
+        Alloc PE / Size       632 / 19.75 GB
+        Free  PE / Size       929 / 29.03 GB
+        VG UUID               8w2Wi9-T2lV-IKCV-fLRP-yTJl-teJM-LuGoNb
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;The &lt;em&gt;Free PE/Size&lt;/em&gt; field shows the new physical volume as 929 free extents.
+      Extend the logical volume to include all free extents:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# lvm lvextend -l+929 /dev/VolGroup00/LogVol00
+        Extending logical volume LogVol00 to 46.81 GB
+        Logical volume LogVol00 successfully resized
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Use &lt;em&gt;resize2fs&lt;/em&gt; to extend our ext3 filesystem online. Note that many LVM
+      tutorials online refer to the now deprecated &lt;em&gt;ext2online&lt;/em&gt; command for this
+      step, &lt;em&gt;resize2fs&lt;/em&gt; now provides this functionality:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;root@fedora ~]# resize2fs /dev/VolGroup00/LogVol00 
+      resize2fs 1.41.4 (27-Jan-2009)
+      Filesystem at /dev/VolGroup00/LogVol00 is mounted on /; on-line resizing required
+      old desc_blocks = 2, new_desc_blocks = 3
+      Performing an on-line resize of /dev/VolGroup00/LogVol00 to 12271616 (4k) blocks.
+      The filesystem on /dev/VolGroup00/LogVol00 is now 12271616 blocks long.
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Finally, use &lt;em&gt;df&lt;/em&gt; again to verify that we have lots of free space:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@fedora ~]# df -h
+      Filesystem            Size  Used Avail Use% Mounted on
+      /dev/mapper/VolGroup00-LogVol00
+                 47G   15G   29G  34% /
+      /dev/sda1             190M  163M   18M  91% /boot
+      tmpfs                 502M   80K  502M   1% /dev/shm
+      &lt;/code&gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
     <title>Aggregate statistics gem released!</title>
-    <link href="http://yoursite.com/blog/2009/09/13/aggregate-statistics-gem-released" />
+    <link href="http://joseph.ruscio.org/blog/2009/09/13/aggregate-statistics-gem-released" />
     <updated>2009-09-13T00:00:00-07:00</updated>
-    <id>http://yoursite.com/blog/2009/09/13/aggregate-statistics-gem-released</id>
+    <id>http://joseph.ruscio.org/blog/2009/09/13/aggregate-statistics-gem-released</id>
     <content type="html">
       &lt;p&gt;Finally got around to putting together a decent README (and a few last bugfixes)
       for my Aggregate statistics gem. With that out of the way, its ready for
@@ -99,9 +275,9 @@
   </entry>
   <entry>
     <title>Installing git on CentOS 5.2</title>
-    <link href="http://yoursite.com/blog/2009/07/29/installing-git-on-centos-5-2" />
+    <link href="http://joseph.ruscio.org/blog/2009/07/29/installing-git-on-centos-5-2" />
     <updated>2009-07-29T00:00:00-07:00</updated>
-    <id>http://yoursite.com/blog/2009/07/29/installing-git-on-centos-5-2</id>
+    <id>http://joseph.ruscio.org/blog/2009/07/29/installing-git-on-centos-5-2</id>
     <content type="html">
       &lt;p&gt;&lt;a href=&quot;http://www.centos.org/&quot;&gt;CentOS&lt;/a&gt; for all intents and purposes is a community
       supported clone of Red Hat Enterprise Linux (RHEL). If you want to run RHEL
@@ -161,9 +337,9 @@
   </entry>
   <entry>
     <title>KVM on Fedora 11 QuickStart Guide</title>
-    <link href="http://yoursite.com/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide" />
+    <link href="http://joseph.ruscio.org/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide" />
     <updated>2009-07-28T00:00:00-07:00</updated>
-    <id>http://yoursite.com/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide</id>
+    <id>http://joseph.ruscio.org/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide</id>
     <content type="html">
       &lt;p&gt;With the upcoming release of RHEL 5.4, Red Hat officially enters the
       virtualization fray with a KVM-based solution. Although KVM is exciting for
@@ -303,9 +479,9 @@
   </entry>
   <entry>
     <title>Securing your online identity</title>
-    <link href="http://yoursite.com/blog/2009/07/16/securing-your-online-identity" />
+    <link href="http://joseph.ruscio.org/blog/2009/07/16/securing-your-online-identity" />
     <updated>2009-07-16T00:00:00-07:00</updated>
-    <id>http://yoursite.com/blog/2009/07/16/securing-your-online-identity</id>
+    <id>http://joseph.ruscio.org/blog/2009/07/16/securing-your-online-identity</id>
     <content type="html">
       &lt;p&gt;This week a
       &lt;a href=&quot;http://www.mercurynews.com/topstories/ci_12844562&quot;&gt;widely publicized security breach&lt;/a&gt;
@@ -356,9 +532,9 @@
   </entry>
   <entry>
     <title>printf(&#8220;Hello World!\n&#8221;);</title>
-    <link href="http://yoursite.com/blog/2009/07/15/hello-world" />
+    <link href="http://joseph.ruscio.org/blog/2009/07/15/hello-world" />
     <updated>2009-07-15T00:00:00-07:00</updated>
-    <id>http://yoursite.com/blog/2009/07/15/hello-world</id>
+    <id>http://joseph.ruscio.org/blog/2009/07/15/hello-world</id>
     <content type="html">
       &lt;p&gt;Welcome to my blog. I&#8217;m only about 10 years behind the times, but better late
       than never I suppose. In my defense, the need for a place for musings and

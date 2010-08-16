@@ -478,7 +478,7 @@ html body a:visited {
   -ms-border-bottom-right-radius: 2px;
   -khtml-border-bottom-right-radius: 2px;
   border-bottom-right-radius: 2px;
-  background: #aaaaaa url('/images/code_bg.png?1281933201') top repeat-x;
+  background: #aaaaaa url('/images/code_bg.png?1281933765') top repeat-x;
   position: relative;
   margin: 0.3em 0 1.3em;
   padding: 0 3px 3px;
@@ -862,7 +862,7 @@ pre.console .stdin {
 }
 /* line 5, ../../stylesheets/partials/_search.sass */
 #search form {
-  background: url('/images/search_bg.png?1281933201') no-repeat;
+  background: url('/images/search_bg.png?1281933765') no-repeat;
   padding: 0;
   height: 28px;
   width: 218px;
@@ -1058,7 +1058,7 @@ pre.console .stdin {
 #nav ul li.subscribe a {
   display: inline-block;
   padding-left: 28px;
-  background: url('/images/rss.png?1281933201') left top no-repeat;
+  background: url('/images/rss.png?1281933765') left top no-repeat;
 }
 /* line 32, ../../stylesheets/partials/_navigation.sass */
 #nav ul li a {
