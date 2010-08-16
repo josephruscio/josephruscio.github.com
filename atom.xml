@@ -3,27 +3,220 @@
   <title>My Octopress Blog</title>
   <link href="http://yoursite.com/atom.xml" rel="self" />
   <link href="http://yoursite.com" />
-  <updated>2010-08-15T20:01:49-07:00</updated>
+  <updated>2010-08-15T20:51:47-07:00</updated>
   <id>http://yoursite.com</id>
   <author>
     <name>Your Name</name>
     <email>author@domain.com</email>
   </author>
   <entry>
-    <title>Hello World! I&#8217;m Octopress!</title>
-    <link href="http://yoursite.com/blog/2009/11/13/hello-world" />
-    <updated>2009-11-13T00:00:00-08:00</updated>
-    <id>http://yoursite.com/blog/2009/11/13/hello-world</id>
+    <title>KVM on Fedora 11 QuickStart Guide</title>
+    <link href="http://yoursite.com/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide" />
+    <updated>2009-07-28T00:00:00-07:00</updated>
+    <id>http://yoursite.com/blog/2009/07/28/kvm-on-fedora-11-quickstart-guide</id>
     <content type="html">
-      &lt;p&gt;&lt;strong&gt;Octopress is a blogging framework designed for hackers&lt;/strong&gt;, based on &lt;a href=&quot;http://github.com/mojombo/jekyll&quot;&gt;Jekyll&lt;/a&gt; the blog aware static site generator powering &lt;a href=&quot;http://pages.github.com/&quot;&gt;Github pages&lt;/a&gt;.
-      If you don&#8217;t know what Jekyll is, &lt;a href=&quot;http://metajack.im/2009/01/23/blogging-with-git-emacs-and-jekyll/&quot;&gt;Jack Moffitt&lt;/a&gt; wrote a good summary:&lt;/p&gt;
+      &lt;p&gt;With the upcoming release of RHEL 5.4, Red Hat officially enters the
+      virtualization fray with a KVM-based solution. Although KVM is exciting for
+      several reasons, e.g. it&#8217;s free, fully supported by the Linux kernel community,
+      doesn&#8217;t require any special hardware past the increasingly common Intel-VT or
+      AMD-V extensions, etc, its also represents the next stage of virtualization evolution.&lt;/p&gt;
       
-      &lt;blockquote&gt;&lt;p&gt;Jekyll is a static blog generator; it transforms a directory of input files into another directory of files suitable for a blog. The management of the blog is handled by standard, familiar tools like creating and renaming files, the text editor of your choice, and version control.&lt;br/&gt;
-      &lt;cite&gt;&lt;strong&gt;Jack Moffitt&lt;/strong&gt; &lt;a href=&quot;http://metajack.im/2009/01/23/blogging-with-git-emacs-and-jekyll/&quot;&gt;Blogging with Git Emacs and Jekyll&lt;/a&gt;&lt;/cite&gt;&lt;/p&gt;&lt;/blockquote&gt;
+      &lt;p&gt;I&#8217;ll expound in a future post about how and why (admittedly with the benefit of
+      hindsight) KVM represents a far more elegant model for virtualization, but
+      after the jump today you&#8217;ll find a minimal set of instructions to rapidly get a
+      Debian Lenny virtual guest up and running on a fresh out-of-the-box Fedora 11
+      server installation.&lt;/p&gt;
       
-      &lt;p&gt;There&#8217;s no database to set up, and you get to use tools like Emacs, vim, or TextMate to write your posts, not some lame in-browser text editor. Just write, generate, deploy, using the same tools and patters you already use for your daily work.&lt;/p&gt;
+      &lt;p&gt;Lengthy instructions on Fedora virtualization suitable for KVM and/or Xen can
+      be found at
+      &lt;a href=&quot;http://fedoraproject.org/wiki/Virtualization_Quick_Start#Using_virtualization_on_fedora&quot;&gt;the Fedora wiki&lt;/a&gt;
+      The following lists the minimal set of steps to get a guest running focusing
+      soley on KVM to the exclusion of Xen.&lt;/p&gt;
       
-      &lt;p&gt;&lt;a href=&quot;http://wiki.github.com/imathis/octopress/&quot;&gt;Read the wiki to learn more&lt;/a&gt;&lt;/p&gt;
+      &lt;p&gt;Our setup comprises a freshly installed remote Fedora 11 server serving as the
+      KVM target (bash prompt &lt;em&gt;server&lt;/em&gt;) and a local Fedora 11 laptop (bash prompt &lt;em&gt;laptop&lt;/em&gt;).&lt;/p&gt;
+      
+      &lt;p&gt;First we&#8217;ll shell into the remote server to install and configure all the
+      necessary KVM software. Verify we&#8217;re using Fedora 11 with a Intel-VT or AMD-V
+      processor:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@server ~]# uname -a &amp;&amp; egrep '(vmx|svm)' /proc/cpuinfo | wc -l
+      Linux server 2.6.29.4-167.fc11.x86_64 #1 SMP Wed May 27 17:27:08 EDT 2009 x86_64 x86_64 x86_64 GNU/Linux
+      4
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;This server is running the modified 2.6.29 Linux kernel that comes stock with
+      Fedora Core 11. It possesses 4 processing cores enabled with Intel-VT. Installing
+      the basic tools required for KVM is our first task, luckily Fedora provides a
+      convenient meta-package:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@server ~]# yum groupinstall 'Virtualization'
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Alongside kvm/qemu, the Virtualization group also includes the
+      &lt;a href=&quot;http://libvirt.org/&quot;&gt;libvirt&lt;/a&gt; toolset. Libvirt provides a common abstraction
+      across several types of hypervisors. This abstraction includes simplified
+      installation and remote graphical console access a la $VMW&#8217;s VirtualCenter. To
+      access these features we must start the libvirtd daemon.&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@server ~]# /etc/init.d/libvirtd start
+      Starting libvirtd daemon:                                  [  OK  ]
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Using the &lt;em&gt;virsh&lt;/em&gt; command line tool, verify the currently guestless system is
+      running and ready to accept commands:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@server ~]# virsh -c qemu:///system list
+      Id Name                 State
+      ----------------------------------
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Now we&#8217;re ready to install our guest. We&#8217;ll need to download an ISO image to
+      install our virtual machine. To keep things simple we&#8217;ll go with Debian Stable
+      aka &lt;em&gt;Lenny&lt;/em&gt; (as of this writing). We&#8217;ll create a top-level directory to store
+      both the ISO image and the virtual machine disk image:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;[root@server ~]# mkdir /kvm &amp;&amp; cd /kvm
+      [root@server kvm]# wget http://cdimage.debian.org/debian-cd/5.0.2/amd64/iso-cd/debian-502-amd64-netinst.iso
+      ...
+      [snip]
+      ...
+      Saving to: `debian-502-amd64-netinst.iso.1'
+      100%[==================================================================================================&gt;] 137,713,664 1.49M/s in 93s
+      2009-07-27 19:10:24 (1.56 MB/s) - `debian-502-amd64-netinst.iso' saved [137713664/137713664]
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Now armed with the KVM/libvirt tools and an ISO image for installation, we issue
+      a single &lt;em&gt;virt-install&lt;/em&gt; command to a) create a backing disk image and b) boot
+      a newly created virtual guest off of the ISO:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;root@server kvm]# virt-install --connect qemu:///system -n lenny0 \
+      &gt; -r 512 --disk path=/kvm/lenny0.qcow2,size=16 \
+      &gt; -c /kvm/debian-502-amd64-netinst.iso --noautoconsole --os-type linux \
+      &gt; --os-variant debianlenny --accelerate --hvm
+      
+      Starting install...
+      Creating storage file...  |  16 GB     00:00
+      Creating domain...        |    0 B     00:01
+      Domain installation still in progress. You can reconnect to the console to complete the installation process.
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;The &#8220;domain&#8221; referred to in virt-install&#8217;s output is our new guest. We&#8217;ve
+      created a single-core virtual server named lenny0 with 512 MB of RAM and a 16GB
+      virtual disk housed on server at /kvm/lenny0.qcow2. Furthermore, lenny0 has been
+      booted off of our Debian net-install ISO image.&lt;/p&gt;
+      
+      &lt;p&gt;Now we can use the graphical &lt;em&gt;virt-manager&lt;/em&gt; tool locally from our laptop to
+      connect to the virtual server&#8217;s graphical console (basically VNC) and kick off
+      the Debian net-install process. In theory we should be able to run virt-manager
+      locally on our laptop and connect over ssh to the libvirtd daemon on the remote
+      server. In practice it&#8217;s still pretty shaky and has some onerous requirements.
+      Notably that there&#8217;s no progress indicator informing how much longer remains
+      before the connection initializes (and it takes a long time). So if you want
+      to try it out, &lt;a href=&quot;http://virt-manager.org/page/RemoteSSH&quot; title=&quot;&quot;&gt;good luck&lt;/a&gt;, YMMV
+      (hopefully someone at $RHAT puts some polish on this aspect soon).&lt;/p&gt;
+      
+      &lt;p&gt;I&#8217;ve personally chosen to avoid the whole debacle and just run virt-manager on
+      the remote server and use X Forwarding over ssh to interact with it from the
+      laptop. It&#8217;s slow, but sufficient for Debian&#8217;s curses-based installer
+      (I actually did this across the continental US).&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;fedora:lm jruscio$ ssh -X root@server 'virt-manager' &amp;amp;
+      [1] 20038
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;The virt-manager tool should show a single VM, lenny0, running on server.
+      Double-clicking on the lenny0 entry brings up the VNC console, that should show
+      the Debian net-install splash screen. Start the installation and for the most
+      part select all the defaults (I removed &lt;em&gt;Desktop&lt;/em&gt; from the additional packages).&lt;/p&gt;
+      
+      &lt;p&gt;After the installer finishes it leaves the machine in a halted state. Boot the
+      machine with the &lt;em&gt;Run&lt;/em&gt; button above the VNC console and log in as root. As a
+      final step install ssh and use ifconfig to determine the IP address DHCP granted
+      the virtual server:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;lenny0:~# apt-get install ssh
+      [snip]
+      lenny0:~# ifconfig eth0 |grep inet
+            inet addr:192.168.122.99  Bcast:192.168.122.255  Mask:255.255.255.0
+            inet6 addr: fe80::5652:ff:fe46:6f93/64 Scope:Link
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;That was pretty easy and we&#8217;re now able to shell into our virtual guest from
+      the physical server hosting it!:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;server:~ jruscio$ ssh 192.168.122.99
+      jruscio@192.168.122.99's password:
+      Linux lenny0 2.6.26-2-amd64 #1 SMP Sun Jun 21 04:47:08 UTC 2009 x86_64
+      &lt;/code&gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <title>Securing your online identity</title>
+    <link href="http://yoursite.com/blog/2009/07/16/securing-your-online-identity" />
+    <updated>2009-07-16T00:00:00-07:00</updated>
+    <id>http://yoursite.com/blog/2009/07/16/securing-your-online-identity</id>
+    <content type="html">
+      &lt;p&gt;This week a
+      &lt;a href=&quot;http://www.mercurynews.com/topstories/ci_12844562&quot;&gt;widely publicized security breach&lt;/a&gt;
+      occurred at media darling Twitter. The cracker made off with a slew of internal
+      company documents, most of which are now easily located at your technology news
+      site of choice. It&#8217;s somewhat of a tempest in a teapot, given that most of the
+      secret documents reveal such salacious details such as Twitter&#8217;s desire to make
+      money and grow. Shocking, I know.&lt;/p&gt;
+      
+      &lt;p&gt;What should should concern the average net denizen (you, me, etc), is the
+      attack vector used to compromise Twitter. In a similar fashion to what
+      &lt;a href=&quot;http://www.wired.com/threatlevel/2008/09/palin-e-mail-ha/&quot;&gt;befell Sarah Palin&lt;/a&gt;
+      during the last election, the cracker managed to compromise a personal
+      web-based email account of a handful of Twitter employees or their family (Gmail
+      in this case, Yahoo for Sarah Palin). After gaining access to Gmail accounts,
+      the cracker was able to both access other online accounts, any attached documents,
+      or Google Docs repositories.&lt;/p&gt;
+      
+      &lt;p&gt;You see, almost any website you log into will gladly email you everything you
+      need to access your account through a simple click of the &#8220;Forgot my password&#8221;
+      button. So even assuming you have a unique, strong password set on every account
+      (and lets be honest, you don&#8217;t), once a cracker gains access to your favorite
+      email account, its game over.&lt;/p&gt;
+      
+      &lt;p&gt;And what industrial strength security mechanism do email providers use to
+      protect your online achilles heel? Some simple question that&#8217;s ridiculously
+      susceptible to attacks. (What&#8217;s your mother&#8217;s maiden name? What town did you go
+      to high school in? What kind of car do you drive?) So while IANASE (I Am Not A
+      Security Expert), and you need to take responsibility for securing your
+      identity online, there are a few simple things you can do to drastically
+      increase your safety.&lt;/p&gt;
+      
+      &lt;p&gt;Even if you&#8217;re not going to use a unique, random password for each account
+      (and you should), at least secure your online email accounts or any Single
+      Sign-on (e.g. OpenID) with a unique, random password. Furthermore, if you have
+      the opportunity to select your own security question (Gmail at least permits
+      this), you should use a question along the lines of &#8220;What is the answer to my
+      security question?&#8221; and supply as that answer a highly-randomized, secure
+      password that you record and store somewhere safe. FYI, a post-it note affixed
+      to your monitor is not such a safe location. Alternatively you could just
+      answer one of the silly questions with your random password.&lt;/p&gt;
+      
+      &lt;p&gt;(For those looking for more ubiquitous protection,
+      &lt;a href=&quot;http://agilewebsolutions.com/products/a/1Password&quot;&gt;1Password&lt;/a&gt; is a highly-touted,
+      secure password manager that seamlessly integrates with your web-browser to
+      maintain a full set of unique, bulletproof passwords.)&lt;/p&gt;
+    </content>
+  </entry>
+  <entry>
+    <title>printf(&#8220;Hello World!\n&#8221;);</title>
+    <link href="http://yoursite.com/blog/2009/07/15/hello-world" />
+    <updated>2009-07-15T00:00:00-07:00</updated>
+    <id>http://yoursite.com/blog/2009/07/15/hello-world</id>
+    <content type="html">
+      &lt;p&gt;Welcome to my blog. I&#8217;m only about 10 years behind the times, but better late
+      than never I suppose. In my defense, the need for a place for musings and
+      information too long for Twitter (&lt;a href=&quot;http://twitter.com/josephruscio&quot;&gt;@josephruscio&lt;/a&gt;)
+      served as the main motivator.
+      Look in this space for intermittent postings on software development, computer
+      science, startupping, marathon training, food/drink, or whatever other shiny
+      object has my attention.&lt;/p&gt;
     </content>
   </entry>
 </feed>
