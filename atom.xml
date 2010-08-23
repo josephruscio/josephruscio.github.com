@@ -3,7 +3,7 @@
   <title>Joseph Ruscio</title>
   <link href="http://joseph.ruscio.org/atom.xml" rel="self" />
   <link href="http://joseph.ruscio.org" />
-  <updated>2010-08-22T19:43:16-07:00</updated>
+  <updated>2010-08-23T06:20:06-07:00</updated>
   <id>http://joseph.ruscio.org</id>
   <author>
     <name>Joseph Ruscio</name>
@@ -28,7 +28,7 @@
       a tool designed for just such a purpose. There are also
       &lt;a href=&quot;http://www.jejik.com/articles/2006/09/setting_up_and_managing_an_apt_repository_with_reprepro/&quot;&gt;informative&lt;/a&gt;
       &lt;a href=&quot;http://www.danielbond.org/archives/114&quot;&gt;reprepro&lt;/a&gt; &lt;a href=&quot;http://davehall.com.au/blog/dave/2010/02/06/howto-setup-private-package-repository-reprepro-nginx&quot;&gt;walkthroughs&lt;/a&gt;
-      already online, but they all gloss over different subtle yet extremely
+      already online, but they all gloss over some subtle yet extremely
       important details.&lt;/p&gt;
       
       &lt;p&gt;So what follows is my attempt to minimally but comprehensively document the
@@ -46,13 +46,13 @@
       had to do with package naming conventions. The naive assumption (at least
       on my part) is that you&#8217;ll have a different build of your package for
       each distro/arch combination, and import them into your repository as such.
-      In other words reprepro should track the distro/arch of each import.
+      In other words &lt;code&gt;reprepro&lt;/code&gt; should track the distro/arch of each import.
       In actuality, each build&#8217;s &lt;code&gt;&lt;PACKAGE&gt;_&lt;VERSION&gt;_&lt;ARCH&gt;&lt;/code&gt; must be unique, even though
       you specify the distro during the &lt;code&gt;includedeb&lt;/code&gt; operation.&lt;/p&gt;
       
       &lt;p&gt;To address this requirement there&#8217;s a common practice of appending the
       distro to the package version e.g. &lt;code&gt;1.0.7&lt;/code&gt; becomes &lt;code&gt;1.0.7~lenny1&lt;/code&gt; or &lt;code&gt;1.0.7+etch4&lt;/code&gt;.
-      (There doesn&#8217;t appear to be a common consensus on the joining character.) Adding
+      (There doesn&#8217;t appear to be a consensus on the joining character.) Adding
       the second version number after the distro string versions the
       package itself, enabling updates that only contain changes to the packaging itself.&lt;/p&gt;
       
@@ -143,7 +143,7 @@
       Debian &lt;code&gt;main&lt;/code&gt;, &lt;code&gt;contrib&lt;/code&gt;, or &lt;code&gt;non-free&lt;/code&gt;. &lt;code&gt;DebOverride&lt;/code&gt; and &lt;code&gt;DscOverride&lt;/code&gt; exceed the scope of
       this posting, the reader may either research them on their own or set them as shown.&lt;/p&gt;
       
-      &lt;p&gt;&lt;code&gt;SignWith&lt;/code&gt; instructs reprepro that these packages should be signed. The &lt;code&gt;yes&lt;/code&gt;
+      &lt;p&gt;&lt;code&gt;SignWith&lt;/code&gt; instructs &lt;code&gt;reprepro&lt;/code&gt; that these packages should be signed. The &lt;code&gt;yes&lt;/code&gt;
       is sufficient as the &lt;code&gt;ubuntu&lt;/code&gt; user only has the one key generated above. If
       you have more than one key you can specify the ID of the signing key with this
       field.&lt;/p&gt;
@@ -156,7 +156,7 @@
       
       &lt;p&gt;Create a file named &lt;code&gt;options&lt;/code&gt; in the &lt;code&gt;conf&lt;/code&gt; directory and fill it with the
       following content. This file will store a
-      set of options for reprepro to always run. We only use a few but there are
+      set of options for &lt;code&gt;reprepro&lt;/code&gt; to always run. We only use a few but there are
       more available on the &lt;code&gt;reprepro&lt;/code&gt; manpage.&lt;/p&gt;
       
       &lt;pre&gt;&lt;code&gt;verbose
