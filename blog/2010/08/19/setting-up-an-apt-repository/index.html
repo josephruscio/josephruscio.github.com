@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Joseph Ruscio :: Setting up an APT Repository</title>
+    <link href='/stylesheets/screen.css' media='screen, projection' rel='stylesheet' type='text/css' />
+    <script src='http://ajax.googleapis.com/ajax/libs/mootools/1.2.4/mootools-yui-compressed.js' type='text/javascript'></script>
+    <script src='/javascripts/mootools-1.2.4.2-more.js' type='text/javascript'></script>
+    <script type='text/javascript'>
+      //<![CDATA[
+        var twitter_user = "josephruscio"
+        var show_replies = false;
+        var tweet_count = 3;
+      //]]>
+    </script>
+    <script src='/javascripts/octopress.js' type='text/javascript'></script>
+    <script src='/javascripts/twitter.js' type='text/javascript'></script>
+    <link href='/atom.xml' rel='alternate' title='Joseph Ruscio' type='application/atom+xml' />
+  </head>
+  <body id="">
+    <div id="header">
+      <div class='content'>
+        <h1>
+          <a class='title' href='/'>Joseph Ruscio</a>
+        </h1>
+      </div>
+    </div>
+    <div id="nav">
+      <div class='content'>
+        <ul>
+          <li class='alpha'>
+            <a href='/'>Blog</a>
+          </li>
+          <li class='omega'>
+            <a href='/about.html'>About</a>
+          </li>
+          <li class='subscribe'>
+            <a href='/atom.xml'>Subscribe</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="page">
+      <div id="content">
+        <div id="main">
+          <div class="blog content">
+            <div class='article'>
+              <h2>Setting up an APT Repository</h2>
+              <div class='meta'>
+                by: Joseph Ruscio | posted: August 19th, 2010
+                
+              </div>
+              <p>I recently set out to create an APT repository to host publicly available&#x000A;packages for <a href="http://librato.com">Librato&#8217;s Silverline</a>. Our users install&#x000A;a tiny agent on their servers and a hosted APT repository provides those&#x000A;using Debian/Ubuntu a configuration management solution superior to&#x000A;manual downloads.</p>&#x000A;&#x000A;<p>Our APT repository must support multiple distributions of both Debian&#x000A;(e.g. Etch, Lenny) and it&#8217;s popular derivative Ubuntu (e.g. Karmic, Lucid).&#x000A;The repository must support both the i386 and x86_64 architectures across&#x000A;all such distributions. A short google search reveals that <code>reprepro</code> is&#x000A;a tool designed for just such a purpose. There are also&#x000A;<a href="http://www.jejik.com/articles/2006/09/setting_up_and_managing_an_apt_repository_with_reprepro/">informative</a>&#x000A;<a href="http://www.danielbond.org/archives/114">reprepro</a> <a href="http://davehall.com.au/blog/dave/2010/02/06/howto-setup-private-package-repository-reprepro-nginx">walkthroughs</a>&#x000A;already online, but they all gloss over different subtle yet extremely&#x000A;important details.</p>&#x000A;&#x000A;<p>So what follows is my attempt to minimally but comprehensively document the&#x000A;procedure assuming a familiarity with shell basics, but little or no experience&#x000A;with Debian packging past <code>apt-get update/upgrade/install</code>.</p>&#x000A;&#x000A;<h3>Host Environment</h3>&#x000A;&#x000A;<p>Our APT repository is hosted on a fresh installation of Ubuntu 10.04 Lucid, but&#x000A;the procedure should work on any recent version of Debian/Ubuntu.</p>&#x000A;&#x000A;<h3>Package Configuration</h3>&#x000A;&#x000A;<p>The most important detail that AFAIK isn&#8217;t covered in any of the tutorials&#x000A;had to do with package naming conventions. The naive assumption (at least&#x000A;on my part) is that you&#8217;ll have a different build of your package for&#x000A;each distro/arch combination, and import them into your repository as such.&#x000A;In other words reprepro should track the distro/arch of each import.&#x000A;In actuality, each build&#8217;s <code>&lt;PACKAGE&gt;_&lt;VERSION&gt;_&lt;ARCH&gt;</code> must be unique, even though&#x000A;you specify the distro during the <code>includedeb</code> operation.</p>&#x000A;&#x000A;<p>To address this requirement there&#8217;s a common practice of appending the&#x000A;distro to the package version e.g. <code>1.0.7</code> becomes <code>1.0.7~lenny1</code> or <code>1.0.7+etch4</code>.&#x000A;(There doesn&#8217;t appear to be a common consensus on the joining character.) Adding&#x000A;the second version number after the distro string versions the&#x000A;package itself, enabling updates that only contain changes to the packaging itself.</p>&#x000A;&#x000A;<p>If you do not build your packages to include the distro as part of the version, you&#x000A;will not be able to import a package for more than one distro. You can verify your&#x000A;package was built correctly by inspecting the <code>Version</code> field listed by <code>dpkg -I</code>:</p>&#x000A;&#x000A;<pre><code>ubuntu:~/lenny$ dpkg -I librato_silverline_debian_lenny_5.0.3.x86_64.deb&#x000A; new debian package, version 2.0.&#x000A; size 306916 bytes: control archive= 834 bytes.&#x000A; 255 bytes,     7 lines      conffiles            &#x000A; 277 bytes,    10 lines      control              &#x000A; 991 bytes,    26 lines   *  postinst             #!/bin/sh&#x000A; Package: librato-silverline&#x000A; Version: 2.0.7~lenny&#x000A;...&#x000A;</code></pre>&#x000A;&#x000A;<h3>GnuPG</h3>&#x000A;&#x000A;<p>Assuming you want sign your debian packages to create a secure APT repository,&#x000A;you need a GPG key. If you already have a GPG key you can skip to the next&#x000A;section. Otherwise first ensure that GPG is installed:</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ sudo apt-get install gnupg&#x000A;</code></pre>&#x000A;&#x000A;<p>Create a key with the <code>--gen-key</code> command. Select the defaults and be sure to&#x000A;record the key&#8217;s passphrase, you&#8217;ll need it each time you import a package into&#x000A;the repository:</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ gpg --gen-key&#x000A;</code></pre>&#x000A;&#x000A;<h3>Install and Configure reprepro</h3>&#x000A;&#x000A;<p>Armed with properly configured packages and a GPG key with which to sign them,&#x000A;we&#8217;re now ready to start constructing the repository itself. Start by installing&#x000A;<code>reprepro</code>:</p>&#x000A;&#x000A;<pre><code>ubuntu:-$ sudo apt-get install reprepro&#x000A;</code></pre>&#x000A;&#x000A;<p>Create a directory to serve as the <em>base</em> of the Debian repository. In our setup&#x000A;<code>/var/packages/debian</code> serves as the Debian repository base. In the future&#x000A;<code>/var/packages/ubuntu</code> will house the Ubuntu repository base. We&#8217;ll change ownership&#x000A;of these directories to the <code>ubuntu</code> user that owns the signing key.</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ sudo mkdir /var/packages&#x000A;ubuntu:~$ sudo chown ubuntu:ubuntu /var/packages&#x000A;ubuntu:~$ mkdir /var/packages/debian&#x000A;</code></pre>&#x000A;&#x000A;<p>Each repository needs a top-level <code>conf</code> directory:</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ mkdir /var/packages/debian/conf&#x000A;</code></pre>&#x000A;&#x000A;<p>Create a file named <code>distributions</code> in the <code>conf</code> directory. You&#8217;ll add a set&#x000A;of newline separated configuration blocks (one for each supported distro) to&#x000A;this file. In this example the repository supports <code>etch</code> and <code>lenny</code>. In the future&#x000A;<code>squeeze</code> support could be added with a third block:</p>&#x000A;&#x000A;<pre><code>Origin: Librato, Inc.&#x000A;Label: Librato, Inc.&#x000A;Codename: etch&#x000A;Architectures: i386 amd64&#x000A;Components: non-free&#x000A;Description: Librato APT Repository&#x000A;SignWith: yes&#x000A;DebOverride: override.etch&#x000A;DscOverride: override.etch&#x000A;&#x000A;Origin: Librato, Inc.&#x000A;Label: Librato, Inc.&#x000A;Codename: lenny&#x000A;Architectures: i386 amd64&#x000A;Components: non-free&#x000A;Description: Librato APT Repository&#x000A;SignWith: yes&#x000A;DebOverride: override.lenny&#x000A;DscOverride: override.lenny&#x000A;</code></pre>&#x000A;&#x000A;<p>Fill in the <code>Origin</code>, <code>Label</code>, and <code>Description</code> as you see fit. <code>Codename</code> identifies the&#x000A;distro the block describes and <code>Architectures</code> is self-explanatory (note that <code>sources</code> is a valid arch).&#x000A;<code>Components</code> lists the component of the packages in the repository e.g. for&#x000A;Debian <code>main</code>, <code>contrib</code>, or <code>non-free</code>. <code>DebOverride</code> and <code>DscOverride</code> exceed the scope of&#x000A;this posting, the reader may either research them on their own or set them as shown.</p>&#x000A;&#x000A;<p><code>SignWith</code> instructs reprepro that these packages should be signed. The <code>yes</code>&#x000A;is sufficient as the <code>ubuntu</code> user only has the one key generated above. If&#x000A;you have more than one key you can specify the ID of the signing key with this&#x000A;field.</p>&#x000A;&#x000A;<p>Create empty override files:</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ touch /var/packages/conf/override.etch&#x000A;ubuntu:~$ touch /var/packages/conf/override.lenny&#x000A;</code></pre>&#x000A;&#x000A;<p>Create a file named <code>options</code> in the <code>conf</code> directory and fill it with the&#x000A;following content. This file will store a&#x000A;set of options for reprepro to always run. We only use a few but there are&#x000A;more available on the <code>reprepro</code> manpage.</p>&#x000A;&#x000A;<pre><code>verbose&#x000A;ask-passphrase&#x000A;basedir .&#x000A;</code></pre>&#x000A;&#x000A;<p>The <code>verbose</code> option is self-explanatory. The ask-passphrase option instructs&#x000A;<code>reprepro</code> to ask us for a GPG key passphrase during the import (otherwise&#x000A;it&#8217;ll fail to sign the packages). The <code>basedir .</code> implies that we&#8217;ll be&#x000A;running all of our <code>reprepro</code> commands with the repository base as our&#x000A;working directory:</p>&#x000A;&#x000A;<pre><code>ubuntu:~$ cd /var/packages/debian&#x000A;</code></pre>&#x000A;&#x000A;<h3>Import Packages</h3>&#x000A;&#x000A;<p>The repository base is completely configured and ready for package importing. Just&#x000A;use the <code>includedeb</code> command and specify the correct distro. In our case:</p>&#x000A;&#x000A;<pre><code>ubuntu:/var/packages/debian$ reprepro includedeb etch ~/librato_silverline_debian_etch_4.0r8.x86_64.deb&#x000A;...&#x000A;ubuntu:/var/packages/debian$ reprepro includedeb lenny ~/ubuntu/librato_silverline_debian_lenny_5.0.3.x86_64.deb&#x000A;</code></pre>&#x000A;&#x000A;<p>Each <code>reprepro includedeb</code> operation should prompt for your GPG key passphrase and import the package.</p>&#x000A;&#x000A;<h3>Repository Access</h3>&#x000A;&#x000A;<p>We now have a proper Debian repository and all that remains is making it&#x000A;accessible for installations over the WAN. We just need to serve static&#x000A;files so we&#8217;ll use <code>nginx</code> to serve the packages over HTTP.</p>&#x000A;&#x000A;<pre><code>ubuntu:/var/packages/debian$ sudo apt-get install nginx&#x000A;</code></pre>&#x000A;&#x000A;<p>Configure the APT server in <code>/etc/nginx/sites-available/vhost-packages.conf</code>:</p>&#x000A;&#x000A;<pre><code>server {&#x000A;  listen 80;&#x000A;  server_name apt.librato.com;&#x000A;&#x000A;  access_log /var/log/nginx/packages-error.log;&#x000A;  error_log /var/log/nginx/packages-error.log;&#x000A;&#x000A;  location / {&#x000A;root /var/packages;&#x000A;index index.html;&#x000A;  }&#x000A;&#x000A;  location ~ /(.*)/conf {&#x000A;deny all;&#x000A;  }&#x000A;&#x000A;  location ~ /(.*)/db {&#x000A;deny all;&#x000A;  }&#x000A;}&#x000A;</code></pre>&#x000A;&#x000A;<p>Configure the hash bucket size by creating the file&#x000A;<code>/etc/nginx/conf.d/server_names_hash_bucket_size.conf</code></p>&#x000A;&#x000A;<pre><code>server_names_hash_bucket_size 64;&#x000A;</code></pre>&#x000A;&#x000A;<p>Enable the APT server:</p>&#x000A;&#x000A;<pre><code>ubuntu:/var/packages/debian$ cd /etc/nginx/sites-enabled&#x000A;ubuntu:/etc/nginx/sites-enabled$ sudo ln -s ../sites-available/vhosts-packages.conf .&#x000A;ubuntu:/etc/nginx/sites-enabled$ sudo service nginx start&#x000A;</code></pre>&#x000A;&#x000A;<h3>Enable Public Key Access</h3>&#x000A;&#x000A;<p>Our users will need our public key to validate the signed packages we&#8217;re&#x000A;providing. Placing it in the root of our <code>nginx</code> configuration above&#x000A;makes it accessible with a simple <code>curl</code> invocation:</p>&#x000A;&#x000A;<pre><code>gpg --armor --output /var/packages/packages.librato.key --export apt@librato.com&#x000A;</code></pre>&#x000A;&#x000A;<h3>Installation Test</h3>&#x000A;&#x000A;<p>Now we can test our fully operational APT repository. On some&#x000A;candidate machine log in as root and add our repository to&#x000A;<code>/etc/apt/sources.list</code>:</p>&#x000A;&#x000A;<pre><code>deb http://apt.librato.com/debian/ lenny non-free&#x000A;</code></pre>&#x000A;&#x000A;<p>Import the repository&#8217;s public key:</p>&#x000A;&#x000A;<pre><code>lenny:# curl http://apt.librato.com/packages.librato.key | apt-key add -&#x000A;</code></pre>&#x000A;&#x000A;<p>Fetch the list of packages available at the new source:</p>&#x000A;&#x000A;<pre><code>lenny:# apt-get update&#x000A;</code></pre>&#x000A;&#x000A;<p>Install the hosted package!</p>&#x000A;&#x000A;<pre><code>lenny:# apt-get install librato-silverline&#x000A;</code></pre>
+              <div id='disqus_thread'></div>
+            </div>
+          </div>
+        </div>
+        <div id="sidebar">
+          <h4>Twitter <a class="small" href="http://twitter.com/josephruscio">@josephruscio</a></h4>
+          <div id='twitter'>
+            <ul id='twitter_status'>
+              Status updating...
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id='footer'>
+      <div class='content'>
+        Copyright &copy; 2009 to 2010 - Joseph Ruscio -
+        <span class='credit'>Powered by <a href="http://octopress.org">Octopress</a></span>
+      </div>
+    </div>
+    
+    <script type='text/javascript'>
+      //<![CDATA[
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-18008905-1']);
+        _gaq.push(['_trackPageview']);
+        
+        (function() {
+          var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+          ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+          (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+        })();
+      //]]>
+    </script>
+  </body>
+</html>

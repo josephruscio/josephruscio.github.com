@@ -3,12 +3,268 @@
   <title>Joseph Ruscio</title>
   <link href="http://joseph.ruscio.org/atom.xml" rel="self" />
   <link href="http://joseph.ruscio.org" />
-  <updated>2010-08-15T22:51:14-07:00</updated>
+  <updated>2010-08-22T19:39:57-07:00</updated>
   <id>http://joseph.ruscio.org</id>
   <author>
     <name>Joseph Ruscio</name>
     <email>joe@ruscio.org</email>
   </author>
+  <entry>
+    <title>Setting up an APT Repository</title>
+    <link href="http://joseph.ruscio.org/blog/2010/08/19/setting-up-an-apt-repository" />
+    <updated>2010-08-19T00:00:00-07:00</updated>
+    <id>http://joseph.ruscio.org/blog/2010/08/19/setting-up-an-apt-repository</id>
+    <content type="html">
+      &lt;p&gt;I recently set out to create an APT repository to host publicly available
+      packages for &lt;a href=&quot;http://librato.com&quot;&gt;Librato&#8217;s Silverline&lt;/a&gt;. Our users install
+      a tiny agent on their servers and a hosted APT repository provides those
+      using Debian/Ubuntu a configuration management solution superior to
+      manual downloads.&lt;/p&gt;
+      
+      &lt;p&gt;Our APT repository must support multiple distributions of both Debian
+      (e.g. Etch, Lenny) and it&#8217;s popular derivative Ubuntu (e.g. Karmic, Lucid).
+      The repository must support both the i386 and x86_64 architectures across
+      all such distributions. A short google search reveals that &lt;code&gt;reprepro&lt;/code&gt; is
+      a tool designed for just such a purpose. There are also
+      &lt;a href=&quot;http://www.jejik.com/articles/2006/09/setting_up_and_managing_an_apt_repository_with_reprepro/&quot;&gt;informative&lt;/a&gt;
+      &lt;a href=&quot;http://www.danielbond.org/archives/114&quot;&gt;reprepro&lt;/a&gt; &lt;a href=&quot;http://davehall.com.au/blog/dave/2010/02/06/howto-setup-private-package-repository-reprepro-nginx&quot;&gt;walkthroughs&lt;/a&gt;
+      already online, but they all gloss over different subtle yet extremely
+      important details.&lt;/p&gt;
+      
+      &lt;p&gt;So what follows is my attempt to minimally but comprehensively document the
+      procedure assuming a familiarity with shell basics, but little or no experience
+      with Debian packging past &lt;code&gt;apt-get update/upgrade/install&lt;/code&gt;.&lt;/p&gt;
+      
+      &lt;h3&gt;Host Environment&lt;/h3&gt;
+      
+      &lt;p&gt;Our APT repository is hosted on a fresh installation of Ubuntu 10.04 Lucid, but
+      the procedure should work on any recent version of Debian/Ubuntu.&lt;/p&gt;
+      
+      &lt;h3&gt;Package Configuration&lt;/h3&gt;
+      
+      &lt;p&gt;The most important detail that AFAIK isn&#8217;t covered in any of the tutorials
+      had to do with package naming conventions. The naive assumption (at least
+      on my part) is that you&#8217;ll have a different build of your package for
+      each distro/arch combination, and import them into your repository as such.
+      In other words reprepro should track the distro/arch of each import.
+      In actuality, each build&#8217;s &lt;code&gt;&lt;PACKAGE&gt;_&lt;VERSION&gt;_&lt;ARCH&gt;&lt;/code&gt; must be unique, even though
+      you specify the distro during the &lt;code&gt;includedeb&lt;/code&gt; operation.&lt;/p&gt;
+      
+      &lt;p&gt;To address this requirement there&#8217;s a common practice of appending the
+      distro to the package version e.g. &lt;code&gt;1.0.7&lt;/code&gt; becomes &lt;code&gt;1.0.7~lenny1&lt;/code&gt; or &lt;code&gt;1.0.7+etch4&lt;/code&gt;.
+      (There doesn&#8217;t appear to be a common consensus on the joining character.) Adding
+      the second version number after the distro string versions the
+      package itself, enabling updates that only contain changes to the packaging itself.&lt;/p&gt;
+      
+      &lt;p&gt;If you do not build your packages to include the distro as part of the version, you
+      will not be able to import a package for more than one distro. You can verify your
+      package was built correctly by inspecting the &lt;code&gt;Version&lt;/code&gt; field listed by &lt;code&gt;dpkg -I&lt;/code&gt;:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~/lenny$ dpkg -I librato_silverline_debian_lenny_5.0.3.x86_64.deb
+       new debian package, version 2.0.
+       size 306916 bytes: control archive= 834 bytes.
+       255 bytes,     7 lines      conffiles            
+       277 bytes,    10 lines      control              
+       991 bytes,    26 lines   *  postinst             #!/bin/sh
+       Package: librato-silverline
+       Version: 2.0.7~lenny
+      ...
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;h3&gt;GnuPG&lt;/h3&gt;
+      
+      &lt;p&gt;Assuming you want sign your debian packages to create a secure APT repository,
+      you need a GPG key. If you already have a GPG key you can skip to the next
+      section. Otherwise first ensure that GPG is installed:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ sudo apt-get install gnupg
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a key with the &lt;code&gt;--gen-key&lt;/code&gt; command. Select the defaults and be sure to
+      record the key&#8217;s passphrase, you&#8217;ll need it each time you import a package into
+      the repository:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ gpg --gen-key
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;h3&gt;Install and Configure reprepro&lt;/h3&gt;
+      
+      &lt;p&gt;Armed with properly configured packages and a GPG key with which to sign them,
+      we&#8217;re now ready to start constructing the repository itself. Start by installing
+      &lt;code&gt;reprepro&lt;/code&gt;:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:-$ sudo apt-get install reprepro
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a directory to serve as the &lt;em&gt;base&lt;/em&gt; of the Debian repository. In our setup
+      &lt;code&gt;/var/packages/debian&lt;/code&gt; serves as the Debian repository base. In the future
+      &lt;code&gt;/var/packages/ubuntu&lt;/code&gt; will house the Ubuntu repository base. We&#8217;ll change ownership
+      of these directories to the &lt;code&gt;ubuntu&lt;/code&gt; user that owns the signing key.&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ sudo mkdir /var/packages
+      ubuntu:~$ sudo chown ubuntu:ubuntu /var/packages
+      ubuntu:~$ mkdir /var/packages/debian
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Each repository needs a top-level &lt;code&gt;conf&lt;/code&gt; directory:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ mkdir /var/packages/debian/conf
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a file named &lt;code&gt;distributions&lt;/code&gt; in the &lt;code&gt;conf&lt;/code&gt; directory. You&#8217;ll add a set
+      of newline separated configuration blocks (one for each supported distro) to
+      this file. In this example the repository supports &lt;code&gt;etch&lt;/code&gt; and &lt;code&gt;lenny&lt;/code&gt;. In the future
+      &lt;code&gt;squeeze&lt;/code&gt; support could be added with a third block:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;Origin: Librato, Inc.
+      Label: Librato, Inc.
+      Codename: etch
+      Architectures: i386 amd64
+      Components: non-free
+      Description: Librato APT Repository
+      SignWith: yes
+      DebOverride: override.etch
+      DscOverride: override.etch
+      
+      Origin: Librato, Inc.
+      Label: Librato, Inc.
+      Codename: lenny
+      Architectures: i386 amd64
+      Components: non-free
+      Description: Librato APT Repository
+      SignWith: yes
+      DebOverride: override.lenny
+      DscOverride: override.lenny
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Fill in the &lt;code&gt;Origin&lt;/code&gt;, &lt;code&gt;Label&lt;/code&gt;, and &lt;code&gt;Description&lt;/code&gt; as you see fit. &lt;code&gt;Codename&lt;/code&gt; identifies the
+      distro the block describes and &lt;code&gt;Architectures&lt;/code&gt; is self-explanatory (note that &lt;code&gt;sources&lt;/code&gt; is a valid arch).
+      &lt;code&gt;Components&lt;/code&gt; lists the component of the packages in the repository e.g. for
+      Debian &lt;code&gt;main&lt;/code&gt;, &lt;code&gt;contrib&lt;/code&gt;, or &lt;code&gt;non-free&lt;/code&gt;. &lt;code&gt;DebOverride&lt;/code&gt; and &lt;code&gt;DscOverride&lt;/code&gt; exceed the scope of
+      this posting, the reader may either research them on their own or set them as shown.&lt;/p&gt;
+      
+      &lt;p&gt;&lt;code&gt;SignWith&lt;/code&gt; instructs reprepro that these packages should be signed. The &lt;code&gt;yes&lt;/code&gt;
+      is sufficient as the &lt;code&gt;ubuntu&lt;/code&gt; user only has the one key generated above. If
+      you have more than one key you can specify the ID of the signing key with this
+      field.&lt;/p&gt;
+      
+      &lt;p&gt;Create empty override files:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ touch /var/packages/conf/override.etch
+      ubuntu:~$ touch /var/packages/conf/override.lenny
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Create a file named &lt;code&gt;options&lt;/code&gt; in the &lt;code&gt;conf&lt;/code&gt; directory and fill it with the
+      following content. This file will store a
+      set of options for reprepro to always run. We only use a few but there are
+      more available on the &lt;code&gt;reprepro&lt;/code&gt; manpage.&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;verbose
+      ask-passphrase
+      basedir .
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;The &lt;code&gt;verbose&lt;/code&gt; option is self-explanatory. The ask-passphrase option instructs
+      &lt;code&gt;reprepro&lt;/code&gt; to ask us for a GPG key passphrase during the import (otherwise
+      it&#8217;ll fail to sign the packages). The &lt;code&gt;basedir .&lt;/code&gt; implies that we&#8217;ll be
+      running all of our &lt;code&gt;reprepro&lt;/code&gt; commands with the repository base as our
+      working directory:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:~$ cd /var/packages/debian
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;h3&gt;Import Packages&lt;/h3&gt;
+      
+      &lt;p&gt;The repository base is completely configured and ready for package importing. Just
+      use the &lt;code&gt;includedeb&lt;/code&gt; command and specify the correct distro. In our case:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:/var/packages/debian$ reprepro includedeb etch ~/librato_silverline_debian_etch_4.0r8.x86_64.deb
+      ...
+      ubuntu:/var/packages/debian$ reprepro includedeb lenny ~/ubuntu/librato_silverline_debian_lenny_5.0.3.x86_64.deb
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Each &lt;code&gt;reprepro includedeb&lt;/code&gt; operation should prompt for your GPG key passphrase and import the package.&lt;/p&gt;
+      
+      &lt;h3&gt;Repository Access&lt;/h3&gt;
+      
+      &lt;p&gt;We now have a proper Debian repository and all that remains is making it
+      accessible for installations over the WAN. We just need to serve static
+      files so we&#8217;ll use &lt;code&gt;nginx&lt;/code&gt; to serve the packages over HTTP.&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:/var/packages/debian$ sudo apt-get install nginx
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Configure the APT server in &lt;code&gt;/etc/nginx/sites-available/vhost-packages.conf&lt;/code&gt;:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;server {
+        listen 80;
+        server_name apt.librato.com;
+      
+        access_log /var/log/nginx/packages-error.log;
+        error_log /var/log/nginx/packages-error.log;
+      
+        location / {
+      root /var/packages;
+      index index.html;
+        }
+      
+        location ~ /(.*)/conf {
+      deny all;
+        }
+      
+        location ~ /(.*)/db {
+      deny all;
+        }
+      }
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Configure the hash bucket size by creating the file
+      &lt;code&gt;/etc/nginx/conf.d/server_names_hash_bucket_size.conf&lt;/code&gt;&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;server_names_hash_bucket_size 64;
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Enable the APT server:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;ubuntu:/var/packages/debian$ cd /etc/nginx/sites-enabled
+      ubuntu:/etc/nginx/sites-enabled$ sudo ln -s ../sites-available/vhosts-packages.conf .
+      ubuntu:/etc/nginx/sites-enabled$ sudo service nginx start
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;h3&gt;Enable Public Key Access&lt;/h3&gt;
+      
+      &lt;p&gt;Our users will need our public key to validate the signed packages we&#8217;re
+      providing. Placing it in the root of our &lt;code&gt;nginx&lt;/code&gt; configuration above
+      makes it accessible with a simple &lt;code&gt;curl&lt;/code&gt; invocation:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;gpg --armor --output /var/packages/packages.librato.key --export apt@librato.com
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;h3&gt;Installation Test&lt;/h3&gt;
+      
+      &lt;p&gt;Now we can test our fully operational APT repository. On some
+      candidate machine log in as root and add our repository to
+      &lt;code&gt;/etc/apt/sources.list&lt;/code&gt;:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;deb http://apt.librato.com/debian/ lenny non-free
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Import the repository&#8217;s public key:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;lenny:# curl http://apt.librato.com/packages.librato.key | apt-key add -
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Fetch the list of packages available at the new source:&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;lenny:# apt-get update
+      &lt;/code&gt;&lt;/pre&gt;
+      
+      &lt;p&gt;Install the hosted package!&lt;/p&gt;
+      
+      &lt;pre&gt;&lt;code&gt;lenny:# apt-get install librato-silverline
+      &lt;/code&gt;&lt;/pre&gt;
+    </content>
+  </entry>
   <entry>
     <title>Increasing hard disk size with LVM on VMWare Fusion Linux guest</title>
     <link href="http://joseph.ruscio.org/blog/2009/12/08/increasing-hard-disk-size-with-lvm-on-vmware-fusion-linux-guest" />
