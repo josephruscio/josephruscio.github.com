@@ -3,7 +3,7 @@ destination: site
 markdown: rdiscount
 pygments: true
 permalink: /blog/:year/:month/:day/:title
-url: http://yoursite.com
+url: http://joseph.ruscio.org
 multiviews: true
 sass: false
 haml: true
